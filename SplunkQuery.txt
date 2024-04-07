@@ -1,0 +1,34 @@
+#Splunk Query#
+===============
+index="retail_digitech_retaileforms"  LEVEL=ERROR------>all records related to ERROR
+index="retail_digitech_retaileforms"  LEVEL=WARN------>all records related to ERROR
+index="retail_digitech_retaileforms"  LEVEL=DEBUG------>all records related to ERROR
+index="retail_digitech_retaileforms"  GET-------------->all records of form submission
+index="retail_digitech_retaileforms"  324f8915-b485-497a-935a-5e1f2b898477--->related logs of this uuid
+index="retail_digitech_retaileforms"  Exception--->related logs of Exception
+index="retail_digitech_retaileforms"  "POST /forms/submit HTTP/1.1" --->Form Submission count
+index="retail_digitech_retaileforms"  "POST /event HTTP/1.1"--->Form event count
+index="retail_digitech_retaileforms"  MESSAGE=Servlet* in context with path *
+
+  
+#Error Till Now#
+================
+1)ChangeStreamTask$ChangeStreamEventMessage+MESSAGE=Error executing FreeMarker template------------->FTL template didn't receive any data from MongoDB(maybe form ftl issue,blank form submit issue,required field issue)
+2)ChangeStreamTask$ChangeStreamEventMessage---->Check View Source: "404 Not Found: [no body]"--->Form definition has changed due to prod form publish
+3)MESSAGE=Error occurred sending message: {}----->[Need to check Mongo Data] User filled wrong email id
+4)MongoDB shows email failure data but Splunk not showing any Error log---->[Need to check Mongo Data]-->Blank form submitted
+5)ChangeStreamTask$ChangeStreamEventMessage+MESSAGE=Unable to build KieBaseModel:defaultKieBase----->runtime form publish
+6)MESSAGE=Servlet.service() for servlet [dispatcherServlet]------>Someone hit the form URL
+
+
+
+
+ChangeStreamTask$ChangeStreamEventMessage=60
+MESSAGE=Unable to build KieBaseModel:defaultKieBase=60
+
+ChangeStreamTask$ChangeStreamEventMessage=6
+MESSAGE=Error executing FreeMarker template=6
+
+ChangeStreamTask$ChangeStreamEventMessage=6
+
+Total=138   errors-->3

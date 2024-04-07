@@ -1,0 +1,172 @@
+To get number of a particular form submitted :- 
+-------------------------------------------------
+db["runtime-form-data"].aggregate( [
+
+   {$match:{$and:[{"formDefinitionReference.uuid":{$in:['RB_OverdraftLimitReduction']}},{dateCreated:{$gte:ISODate('2024-03-18'),$lte:ISODate('2024-03-24T23:59:59.999Z')}}]}},
+
+   { $count: "myCount" }
+
+]);
+
+To Get Total No.of Form submitted for a week   -- 22267
+----------------------------------------------
+db["runtime-form-data"].aggregate( [
+   {$match:{dateCreated:{$gte:ISODate('2024-03-18'),$lte:ISODate('2024-03-24T23:59:59.999Z')}}},
+   { $count: "myCount" }
+]);
+
+To get internal form Count for a week 19398
+----------------------------------------
+db["runtime-form-data"].aggregate( [
+   {$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+   { $count: "myCount" }
+]);
+
+To get External form Count for a week   2869
+---------------------------------------
+db["runtime-form-data"].aggregate( [
+   {$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+   { $count: "myCount" }
+]);
+
+To Get Total No.of Email Failure count on for a week    7
+----------------------------------------------
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_UnsecuredCallCheck','RB_CallChecklist-AfterCallAction']}},{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{ $count: "myCount"}
+]);
+
+
+
+To Get Total No.of Form submitted for a month- 79778
+----------------------------------------------
+
+db["runtime-form-data"].aggregate( [
+   {$match:{dateCreated:{$gte:ISODate('2023-12-01'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}},
+   { $count: "myCount" }
+]);
+
+To get internal form Count for a month      68197
+----------------------------------------
+db["runtime-form-data"].aggregate( [
+   {$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+{dateCreated:{$gte:ISODate('2023-12-01'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+   { $count: "myCount" }
+]);
+
+
+To get External form Count for a month    11581
+---------------------------------------
+db["runtime-form-data"].aggregate( [
+   {$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+{dateCreated:{$gte:ISODate('2023-12-01'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+   { $count: "myCount" }
+]);
+
+To Get Total No.of Email Failure count on for a month  16
+----------------------------------------------
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_UnsecuredCallCheck','RB_CallChecklist-AfterCallAction']}},
+{dateCreated:{$gte:ISODate('2023-12-01'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{ $count: "myCount"}
+]);
+
+To get Count of Form Submission on Day wise for a week (Internal Forms)
+-------------------------------------------------------
+
+
+db["runtime-form-data"].aggregate(
+[{$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}}, 
+{
+    $group: {
+       		 _id: { $dayOfWeek: '$dateCreated'    },
+       	 	count: {    $sum: 1 }
+    	    }
+}, {
+    $project: {  day :{  $switch : { branches:[ 
+		{case : { $eq : ['$_id',1] }, then: "Sunday"},
+		{case : { $eq : ['$_id',2] }, then: "Monday"},
+		{case : { $eq : ['$_id',3] }, then: "Tuesday"},
+		{case : { $eq : ['$_id',4] }, then: "Wednesday"},
+		{case : { $eq : ['$_id',5] }, then: "Thursday"},
+		{case : { $eq : ['$_id',6] }, then: "Friday"},
+		{case : { $eq : ['$_id',7] }, then: "Saturday"},
+		]  }
+},
+count:1, _id:0}
+}, { $sort: {   _id: 1  }  }]  );
+
+
+To get Count of Form Submission on Hour wise for a week  (Internal Forms)
+--------------------------------------------------------
+
+db["runtime-form-data"].aggregate(
+[ {$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}}, 
+{ $project: {  hour: {   $hour: '$dateCreated'}, _id: 1 }
+}, { $group: { _id: '$hour', count: {  $sum: 1  } }
+}, { $sort: {   _id: 1  } }]);
+
+
+
+
+To get Count of Form Submission on Day wise for a week  (External Forms)
+-------------------------------------------------------
+
+
+db["runtime-form-data"].aggregate(
+[{$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}}, 
+{
+    $group: {
+       		 _id: { $dayOfWeek: '$dateCreated'    },
+       	 	count: {    $sum: 1 }
+    	    }
+}, {
+    $project: {  day :{  $switch : { branches:[ 
+		{case : { $eq : ['$_id',1] }, then: "Sunday"},
+		{case : { $eq : ['$_id',2] }, then: "Monday"},
+		{case : { $eq : ['$_id',3] }, then: "Tuesday"},
+		{case : { $eq : ['$_id',4] }, then: "Wednesday"},
+		{case : { $eq : ['$_id',5] }, then: "Thursday"},
+		{case : { $eq : ['$_id',6] }, then: "Friday"},
+		{case : { $eq : ['$_id',7] }, then: "Saturday"},
+		]  }
+},
+count:1, _id:0}
+}, { $sort: {   _id: 1  }  }]  );
+
+
+
+
+To get Count of Form Submission on Hour wise for a week  (External Forms)
+--------------------------------------------------------
+
+db["runtime-form-data"].aggregate(
+[ {$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+{dateCreated:{$gte:ISODate('2023-12-18'),$lte:ISODate('2023-12-24T23:59:59.999Z')}}]}}, 
+{ $project: {  hour: {   $hour: '$dateCreated'}, _id: 1 }
+}, { $group: { _id: '$hour', count: {  $sum: 1  } }
+}, { $sort: {   _id: 1  } }]);

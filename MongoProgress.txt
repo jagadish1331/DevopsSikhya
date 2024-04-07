@@ -1,0 +1,263 @@
+1) Form submission counts group by submission date
+==================================================
+
+db["runtime-form-data"].aggregate
+([
+  {$match:{dateCreated:{$gte:ISODate('2023-04-01'),$lte:ISODate('2023-04-30T23:59:59.999Z')}}},
+  {$group:{ _id:{Date:{$dateToString:{format: "%Y-%m-%d", date: "$dateCreated"}}}, Total:{ $sum: 1}}},
+  {$sort: {_id:1}}
+]);
+
+2)Form submission counts group by form type
+===========================================
+
+db["runtime-form-data"].aggregate
+([
+    {$match:{dateCreated:{$gte:ISODate('2023-05-03'),$lte:ISODate('2023-05-03T23:59:59.999Z')}}},
+    {$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}}
+]);
+
+
+3)Form submission counts group by form type and submission date
+===============================================================
+
+db["runtime-form-data"].aggregate
+([
+  {$match:{dateCreated:{$gte:ISODate('2023-01-16'),$lte:ISODate('2023-01-16T23:59:59.999Z')}}},
+  {$group:{ _id:{Date:{$dateToString:{format:"%Y-%m-%d",date:"$dateCreated" }},Form:'$formDefinitionReference.uuid'}, Total: { $count: { } }}},
+  {$sort: {_id:1}}
+]);
+
+
+4)Individual Record Check
+==========================
+
+db["runtime-form-data"].aggregate([
+    {
+        $addFields: {
+            createdOnDate: {
+                $dateToString: {
+                    format: '%d-%m-%Y',
+                    date: '$dateCreated'
+                }
+            }
+        }
+    }, {
+        $match: {
+            createdOnDate: '03-01-2023'
+        }
+    }
+]);
+
+5)FORM SEND_SUCCESS RECORD CHECK WITH UUID
+==========================================
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-01-16'),$lte:ISODate('2023-01-16T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',LIFECYCLE_EVENT:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+6) Total Record Count
+=====================
+db["runtime-form-data"].countDocuments({
+    dateCreated: {
+        $gte: ISODate('2023-05-09'), // start date
+        $lte: ISODate('2023-05-09T23:59:59.999Z') // end Date
+    }
+});
+
+7)FORM SUCCESS AND FAILURE COUNT
+================================
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-03-22'),$lte:ISODate('2023-03-22T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$group :{_id:{LIFECYCLE_EVENT:'$event.body.eventClass'},Total:{$count:{}}}}
+]);
+
+8)ONLY SUCCESS RECORD
+=====================
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-01-23'),$lte:ISODate('2023-01-23T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{ $match:{"event.body.eventClass":"SEND_SUCCESS" }},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Success:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":'RB_Biometric_Removal'},{dateCreated:{$gte:ISODate('2023-04-27'),$lte:ISODate('2023-04-27T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{ $match:{"event.body.eventClass":"SEND_SUCCESS" }},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Success:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+
+9)Only Success Record For a specific Form
+==========================================
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":'RB_BiometricRemoval'},{dateCreated:{$gte:ISODate('2023-04-26'),$lte:ISODate('2023-04-2T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{ $match:{"event.body.eventClass":"SEND_SUCCESS" }},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Success:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+10)All Types of Failure Record with details data
+=================================================
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-04-27'),$lte:ISODate('2023-04-27T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d-T%H:%M:%S",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Failure:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+11)All Types of Failure Record with Count
+=========================================
+
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-05-05'),$lte:ISODate('2023-05-07T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}},
+{$sort: {_id:1}}
+]);
+
+12)All Types of Failure Record For a specific Form
+==================================================
+
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":'RB_Biometric_Removal'},{dateCreated:{$gte:ISODate('2023-04-27T11:29:59.999Z'),$lte:ISODate('2023-04-27T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d-T%H:%M:%S",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Failure:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+13)Blank Form Submission (Form Submitted but event not triggered: Object missing or wrong Email Rule )
+======================================================================================================
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-05-09'),$lte:ISODate('2023-05-09T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.header.schemaId":{$ne:'RULE_FIRED_EVENT'}}]}},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d-T%H:%M:%S",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Blank_Submit:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+
+
+14)Blank form count
+====================
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-05-09'),$lte:ISODate('2023-05-09T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.header.schemaId":{$ne:'RULE_FIRED_EVENT'}}]}},
+{$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}}
+]);
+
+
+
+
+15)Failure Record (Form submitted,event triggered but email failed: User submitted wrong data)
+==============================================================================================
+
+db["runtime-form-data"].aggregate([
+{$match:{dateCreated:{$gte:ISODate('2023-03-01'),$lte:ISODate('2023-03-01T23:59:59.999Z')}}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.header.schemaId":'RULE_FIRED_EVENT'},{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d-T%H:%M:%S",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Failure:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
+]);
+
+
+
+
+
+
+
+
