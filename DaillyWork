@@ -1,0 +1,196 @@
+
+
+Hi Team,
+
+Splunk Errors: 13
+
+500 Internal Server Error: 8
+returned non unique result: 1
+
+
+ 
+1 Error related to RB_FollowUpApplication, Unable to generate email as Form Definition Reference is null!.
+ 
+1 Errors related Kafka enabled form (RB_BDN) , unable to publish data to Kafka topic due to deceasedCustDateOfBirth field value is null.
+ 
+2 Errors are related to ADDLookup Failure when calling , No Impact on any form submission due to this error.
+
+Mongo error: 1
+ 
+1 Error related to RB_FollowUpApplication, Unable to generate email as Form Definition Reference is null!.
+ 
+kafka failures: 1
+ 
+1 Error related Kafka enabled form (RB_BDN) , unable to publish data to Kafka topic due to deceasedCustDateOfBirth filed value is null.
+
+APM and ASM looks good.
+ 
+All services are running in PCF.
+ 
+Internal and External form submitted and got mail.
+ 
+No new Incidents created in SNOW.
+ 
+Checked Personal Mailbox and RBeForms Mailbox.
+ 
+No Planned Activity.
+ 
+ -------------------------------------------------
+
+forms-editor-form-definition----->It holds the form itself
+forms-editor-form-definition-revs-->It holds the history of the change of form definition
+forms-editor-data-schema------>It hold the form content like component,widget information
+forms-editor-data-schema-revs--->It holds the history of the change of data-schema
+#forms-editor-rule-template-data-->email rule,event enrichment rule,kafka rule defined here
+#forms-editor-rule-template-data-revision---->It holds editor rule template history
+forms-editor-ui-schema--->It holds order of a component inside form
+forms-editor-ui-schema-revs->>It holds order of a component inside form history
+8	COLLECTIONS KEEPS DATA REGARDING EDITOR OF EFORMS
+
+forms-editor-user theis collection keeps all the record of the user as a admin part
+1 user and admin part
+
+forms-rule-template---->Editor integration data.-->email rule,event enrichment rule,kafka rule defined here
+forms-rule-template-revision--->It holds runtime rule template history
+forms-rule-template-data---->Runtime email rule,event enrichment rule,kafka rule data show here
+forms-rule-template-data-revision---->It holds runtime rule template
+4 RULES
+
+fs.files----->It holds attachment names (ftl,pdf,xlsx etc)--->fs is GridFile system
+fs.chunks---->It stores the attachment in binary format
+2 Files keepong
+
+rule-definition--->Editor version. Interaction (Show & hide) of the form step. To make the form dynamic/responsive.
+rule-definition-revs---> It keeps the hisrtory of the rules definition what has been changed so far
+2
+runtime-form-data--->which holds data submitted by user
+runtime-form-data-revs--->which holds data submitted by user and their Hisotry
+runtime-data-schema
+runtime-data-schema-revs
+runtime-form-definition
+runtime-form-definition-revs
+#runtime-rule-definition----->When you add your custom rules like hide & show feature or save button fuctionality 
+#runtime-rule-definition-revs----->it holds the history of the rule definitions	
+runtime-ui-schema--->IN RUNTIME It holds order of a component inside form
+runtime-ui-schema-revs--->IN RUNTIME It holds order of a component HISTORY
+10 COLLECTIONS KEEPS DATA REGARDING RUNTIME DATA COLLECTED BY EFORMS
+
+event-store-resume-token-->For every form submission token is generated for each event which is stored here.
+event-schema-store -It has the list of events available in eform and its details. 
+event-store---->It has the status of the form submission. It tells whether form submitted, mail sent successfully or not and kafka sent or not.
+3
+shedLock--->Locking time of the token. It is locking for 60 seconds.
+shedlock-email-int--->shedLock integration history
+2
+
+
+32 collections
+
+forms-editor--->9	Before publishing 
+runtime------>10	After publishing the eForm all the collections used here in runtime
+event---->3
+rule----->2
+forms-rule--->4
+ 
+Ignore
+--------
+shedlock--->2
+
+
+
+To get internal form Count for a month
+
+----------------------------------------
+
+db["runtime-form-data"].aggregate( [
+
+   {$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+
+{dateCreated:{$gte:ISODate('2024-03-01'),$lte:ISODate('2024-03-31T23:59:59.999Z')}}]}},
+
+   { $count: "myCount" }
+
+]);
+ 
+ 
+To get External form Count for a month
+
+---------------------------------------
+
+db["runtime-form-data"].aggregate( [
+
+   {$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+
+{dateCreated:{$gte:ISODate('2024-03-25'),$lte:ISODate('2024-03-31T23:59:59.999Z')}}]}},
+
+   { $count: "myCount" }
+
+]);
+
+[Yesterday 15:00] Sanyal, Sourav (Retail Digital X)
+db["runtime-form-data"].aggregate([
+
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_UnsecuredCallCheck','RB_DCACallTagging','RB_CallChecklist-AfterCallAction','RB_BranchAccClosure','RB_CoECoachinglog','RB_MarvinQa','RB_H2B_ISA_BranchClosure','RB_BDN']}},{dateCreated:{$gte:ISODate('2024-03-18'),$lte:ISODate('2024-03-18T23:59:59.999Z')}}]}},
+
+{ $lookup:
+
+        {
+
+           from: "event-store",
+
+           localField: "uuid",
+
+           foreignField: "references.uuid",
+
+           as: "event"
+
+        }
+
+},
+
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}]}},
+
+{$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}},
+
+{$sort: {_id:1}}
+
+]);
+[Yesterday 15:00] Sanyal, Sourav (Retail Digital X)
+
+
+To get internal form Count for a month
+
+----------------------------------------
+
+db["runtime-form-data"].aggregate( [
+
+   {$match:{$and:[{"formDefinitionReference.uuid":{$not:{$regex:"VRP|ORP|PBBA|AccountConversion"}}},
+
+{dateCreated:{$gte:ISODate('2024-03-01'),$lte:ISODate('2024-03-31T23:59:59.999Z')}}]}},
+
+   { $count: "myCount" }
+
+]);
+ 
+ 
+To get External form Count for a month
+
+---------------------------------------
+
+db["runtime-form-data"].aggregate( [
+
+   {$match:{$and:[{"formDefinitionReference.uuid":{$regex:"VRP|ORP|PBBA|AccountConversion"}},
+
+{dateCreated:{$gte:ISODate('2024-03-25'),$lte:ISODate('2024-03-31T23:59:59.999Z')}}]}},
+
+   { $count: "myCount" }
+
+]);
+
+
+
+db["runtime-form-data"].aggregate
+([
+    {$match:{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}},
+    {$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}}
+]);

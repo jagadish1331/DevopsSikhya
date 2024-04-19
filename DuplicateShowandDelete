@@ -1,0 +1,45 @@
+All duplicates to show
+----------------------------------
+db.collection.aggregate([
+{$facet:{
+          "runtime-rule-definition-revs":[{$unionWith:{coll:"runtime-rule-definition-revs"}},{$addFields:{collection: "runtime-rule-definition-revs"}}],
+        }
+},
+{$project:{documents:{$concatArrays:["$runtime-rule-definition-revs"]}}},
+{$unwind:"$documents"},
+{$group:{_id:{uuid:"$documents.uuid",version:"$documents.version"},collection:{$first:"$documents.collection"},duplicates:{$push:"$documents._id"},duplicates:{$push:"$documents._id"},count:{$sum: 1}}},
+{$match:{count:{$gt:1}}},
+{ $lookup:
+        {
+           from:"runtime-form-definition",
+           let:{ uuid:"$_id.uuid"},       pipeline:[{$unwind:"$stepDefinitions"},{$match:{$expr:{$or:[{$eq:["$stepDefinitions.dataSchemaReference.uuid","$$uuid"]},{$eq:["$stepDefinitions.uiSchemaReference.uuid","$$uuid"]},{$eq:["$stepDefinitions.ruleDefinitionReference.uuid","$$uuid"]},{$eq:["$ruleDefinitionReference.uuid","$$uuid"]}]}}}],       
+           as: "joinedData"
+        }
+},
+{$unwind:"$joinedData"},
+{$group:{_id:{uuid:"$_id.uuid",version:"$_id.version"},collection:{$first:"$collection"},Form_Name:{$first:"$joinedData.uuid"},duplicates:{$first:"$duplicates"},Count:{$first:"$count"}}}
+]);
+
+All Form Duplicate Data Delete
+==============================
+db.collection.aggregate([
+{$facet:{
+          "runtime-rule-definition-revs":[{$unionWith:{coll:"runtime-rule-definition-revs"}},{$addFields:{collection: "runtime-rule-definition-revs"}}],
+        }
+},
+{$project:{documents:{$concatArrays:["$runtime-rule-definition-revs"]}}},
+{$unwind:"$documents"},
+{$group:{_id:{uuid:"$documents.uuid",version:"$documents.version"},collection:{$first:"$documents.collection"},duplicates:{$push:"$documents._id"},duplicates:{$push:"$documents._id"},count:{$sum: 1}}},
+{$match:{count:{$gt:1}}},
+{ $lookup:
+        {
+           from:"runtime-form-definition",
+           let:{ uuid:"$_id.uuid"},       pipeline:[{$unwind:"$stepDefinitions"},{$match:{$expr:{$or:[{$eq:["$stepDefinitions.dataSchemaReference.uuid","$$uuid"]},{$eq:["$stepDefinitions.uiSchemaReference.uuid","$$uuid"]},{$eq:["$stepDefinitions.ruleDefinitionReference.uuid","$$uuid"]},{$eq:["$ruleDefinitionReference.uuid","$$uuid"]}]}}}],       
+           as: "joinedData"
+        }
+},
+{$unwind:"$joinedData"},
+{$group:{_id:{uuid:"$_id.uuid",version:"$_id.version"},collection:{$first:"$collection"},Form_Name:{$first:"$joinedData.uuid"},duplicates:{$first:"$duplicates"},Count:{$first:"$count"}}}
+]).forEach(function(doc){
+doc.duplicates.shift();
+db["runtime-data-schema-revs"].deleteMany({_id:{$in:doc.duplicates}});

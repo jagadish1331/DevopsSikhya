@@ -2,7 +2,7 @@
 -------------------------------------
 
 db["runtime-form-data"].aggregate([
-{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_CallChecklist-AfterCallAction','RB_UnsecuredCallCheck','RB_H2B_ISA_BranchClosure','RB_BranchAccClosure','RB_CoECoachinglog']}},{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}]}},
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_CallChecklist-AfterCallAction','RB_UnsecuredCallCheck','RB_H2B_ISA_BranchClosure','RB_BranchAccClosure','RB_CoECoachinglog']}},{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}]}},
 { $lookup:
         {
            from: "event-store",
@@ -28,7 +28,7 @@ db["runtime-form-data"].aggregate([
 --------------------------------------
 
 db["runtime-form-data"].aggregate([
-{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_CallChecklist-AfterCallAction','RB_UnsecuredCallCheck','RB_H2B_ISA_BranchClosure','RB_BranchAccClosure','RB_CoECoachinglog']}},{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}]}},
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_CallChecklist-AfterCallAction','RB_UnsecuredCallCheck','RB_H2B_ISA_BranchClosure','RB_BranchAccClosure','RB_CoECoachinglog']}},{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}]}},
 { $lookup:
         {
            from: "event-store",
@@ -57,7 +57,7 @@ db["runtime-form-data"].aggregate([
 
 db["runtime-form-data"].aggregate
 ([
-    {$match:{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}},
+    {$match:{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}},
     {$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}}
 ]);
 
@@ -66,7 +66,7 @@ db["runtime-form-data"].aggregate
 ----------------------------------------------
 
 db["runtime-form-data"].aggregate( [
-   {$match:{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}},
+   {$match:{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}},
    { $count: "myCount" }
 ]);
 
@@ -75,7 +75,7 @@ db["runtime-form-data"].aggregate( [
 -------------------------------
 
 db["runtime-form-data"].aggregate([
-{$match:{$and:[{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}]}},
+{$match:{$and:[{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}]}},
 { $lookup:
         {
            from: "event-store",
@@ -109,7 +109,7 @@ db["runtime-form-data"].aggregate([
 ---------------------------
 
 db["runtime-form-data"].aggregate([
-{$match:{$and:[{dateCreated:{$gte:ISODate('2024-04-03'),$lte:ISODate('2024-04-04T23:59:59.999Z')}}]}},
+{$match:{$and:[{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}]}},
 { $lookup:
         {
            from: "event-store",
@@ -120,4 +120,32 @@ db["runtime-form-data"].aggregate([
 },
 {$match:{$and:[{"event.header.schemaId":'RULE_FIRED_EVENT'},{"event.body.eventClass":{$ne:'SUBMITTED'}}]}},
 {$group :{_id:{Form:'$formDefinitionReference.uuid'},Total:{$sum:1}}}
+]);
+
+
+7)Email Failure details on daily basis (With Or)
+--------------------------------------
+
+db["runtime-form-data"].aggregate([
+{$match:{$and:[{"formDefinitionReference.uuid":{$nin:['RB_DCACallTagging','RB_MarvinQa','RB_BDN','RB_BATMeasurement','RB_CallChecklist-AfterCallAction','RB_UnsecuredCallCheck','RB_H2B_ISA_BranchClosure','RB_BranchAccClosure','RB_CoECoachinglog']}},{dateCreated:{$gte:ISODate('2024-04-18'),$lte:ISODate('2024-04-19T23:59:59.999Z')}}]}},
+{ $lookup:
+        {
+           from: "event-store",
+           localField: "uuid",
+           foreignField: "references.uuid",
+           as: "event"
+        }
+},
+{$match:{$and:[{"event.body.eventClass":'SUBMITTED' },{$or:[{"event.body.eventClass":{$ne:'SEND_SUCCESS'}}, {"event.body.eventClass":'SEND_FAILURE'}]}]}},
+{ $lookup:
+        {
+           from: "runtime-form-definition",
+           localField: "formDefinitionReference.uuid",
+           foreignField: "uuid",
+           as: "mail-event"
+        }
+},
+{$match:{"mail-event.extensionDefinition":{"$exists":true}}},
+{$group:{_id:{Date:{$dateToString:{format:"%Y-%m-%d-T%H:%M:%S",date:"$dateCreated"}},uuid:'$uuid',Form:'$formDefinitionReference.uuid',Event_Failure:'$event.body.eventClass'}}},
+{$sort: {_id:1}}
 ]);

@@ -1,0 +1,9 @@
+eforms-runtime-service-rb-natwest-prd:
+===================================== 
+Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.NullPointerException] with root cause
+
+
+
+
+2022-12-19T06:14:48.721819+00:00 RETAILEFORMS.PRD.eforms-runtime-service-rb-natwest-prd 996c6c08-61d7-4c45-9aae-7b1f30f95782[[APP/PROC/WEB/1]] APPENDER=APP, DATE=2022-12-19 06:14:48.719, LEVEL=ERROR, USER=EUROPA_SRIDHV, THREAD=[http-nio-8080-exec-6], LOGGER=o.a.c.c.C.[.[.[.[dispatcherServlet], CORR=ba4b6b8694b64831bb24e0267bdb3bed, INT_CORR=, X-VCAP-REQUEST-ID=b6282455-56ae-4e8f-7b41-ac97858e2647, MESSAGE=Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.NullPointerException] with root cause
+host = 11.124.80.183source = /opt/splunkremote/remote/retaileforms___996c6c08-61d7-4c45-9aae-7b1f30f95782[[app_proc_web_1]]___11.124.80.183___2022-12-19___06___messages.logsourcetype = pcf_syslog_app
